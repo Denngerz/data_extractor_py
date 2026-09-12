@@ -5,20 +5,18 @@ from bs4 import BeautifulSoup
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36"}
 
 def get_reviews(slug):
-    # 1. Download the HTML page (not JSON this time)
     url = f"https://www.metacritic.com/movie/{slug}/user-reviews/"
     response = requests.get(url, headers=HEADERS)
-    response.raise_for_status()  # stop with an error if the request failed
+    response.raise_for_status()
 
-    # 2. Parse the HTML into a searchable tree
     soup = BeautifulSoup(response.text, "html.parser")
 
-    # 3. Find every review card on the page
+    # Finding all review cards on the page
     cards = soup.find_all("div", attrs={"data-testid": "review-card"})
 
     rows = []
     for card in cards:
-        # 4. Inside each card, find the parts we need
+        # Getting the score, date, author, and quote from each review card
         score_tag = card.select_one("div.c-siteReviewScore span")
         date_tag  = card.find(attrs={"data-testid": "review-card-date"})
         user_tag  = card.find("a", attrs={"data-testid": "review-card-header"})
@@ -32,7 +30,3 @@ def get_reviews(slug):
         })
 
     return pd.DataFrame(rows)
-
-df = get_reviews("parasite")
-print(len(df))
-print(df[["score", "date", "quote"]].head())

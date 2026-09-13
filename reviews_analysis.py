@@ -1,9 +1,10 @@
 import reviews_scraper as scraper
 import pandas as pd, seaborn as sns, scipy.stats as stats, matplotlib.pyplot as plt
+import argparse
 
-def analyze_reviews(slug1, slug2):
-    slug1_data = scraper.get_reviews(slug1)
-    slug2_data = scraper.get_reviews(slug2)
+def analyze_reviews(slug1, slug2, max_reviews_count=400):
+    slug1_data = scraper.get_reviews(slug=slug1, max_reviews=max_reviews_count)
+    slug2_data = scraper.get_reviews(slug=slug2, max_reviews=max_reviews_count)
     slug1_data["movie"] = slug1
     slug2_data["movie"] = slug2
     df = pd.concat([slug1_data, slug2_data], ignore_index=True)
@@ -39,4 +40,12 @@ def analyze_reviews(slug1, slug2):
     plt.ylabel("User score (0–10)")
     plt.show()
 
-analyze_reviews("the-dark-knight", "joker")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Compare Metacritic user reviews of two films.")
+    parser.add_argument("movie1", help="Metacritic slug of the first film, e.g. the-dark-knight")
+    parser.add_argument("movie2", help="Metacritic slug of the second film, e.g. joker")
+    parser.add_argument("--max-reviews", type=int, default=400, help="maximum number of reviews per film (default: 400)")
+    args = parser.parse_args()
+
+    analyze_reviews(args.movie1, args.movie2, args.max_reviews)

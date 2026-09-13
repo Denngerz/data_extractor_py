@@ -1,32 +1,34 @@
+import time
 import requests
 import pandas as pd
-from bs4 import BeautifulSoup
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36"}
 
-def get_reviews(slug):
-    url = f"https://www.metacritic.com/movie/{slug}/user-reviews/"
-    response = requests.get(url, headers=HEADERS)
-    response.raise_for_status()
+def get_reviews(slug, page_size=50, max_reviews=400):
+    url = f"https://backend.metacritic.com/reviews/metacritic/user/movies/{slug}/web"
+    rows, offset = [], 0
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    while True:
+        response = requests.get(url, params={"offset": offset, "limit": page_size},headers=HEADERS, timeout=30)
+        response.raise_for_status()
+        data = response.json()["data"]
 
-    # Finding all review cards on the page
-    cards = soup.find_all("div", attrs={"data-testid": "review-card"})
+        for item in data["items"]:
+            rows.append({
+                "score":  item.get("score"),
+                "date":   item.get("date"),
+                "author": item.get("author"),
+                "quote":  item.get("quote"),
+            })
 
-    rows = []
-    for card in cards:
-        # Getting the score, date, author, and quote from each review card
-        score_tag = card.select_one("div.c-siteReviewScore span")
-        date_tag  = card.find(attrs={"data-testid": "review-card-date"})
-        user_tag  = card.find("a", attrs={"data-testid": "review-card-header"})
-        quote_tag = card.find(attrs={"data-testid": "review-quote-text"})
+        offset += page_size
+        total_results = min(data["totalResults"], max_reviews)
 
-        rows.append({
-            "score":  int(score_tag.get_text(strip=True)) if score_tag else None,
-            "date":   date_tag.get_text(strip=True) if date_tag else None,
-            "author": user_tag["href"].strip("/").split("/")[-1] if user_tag else None,
-            "quote":  quote_tag.get_text(strip=True) if quote_tag else None,
-        })
-        
+        print(f"{slug}: {len(rows)} / {total_results} reviews")
+
+        if offset >= total_results or not data["items"]:
+            break
+
+        time.sleep(1)
+
     return pd.DataFrame(rows)

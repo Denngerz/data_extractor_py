@@ -28,5 +28,5 @@ def get_reviews(slug):
             "author": user_tag["href"].strip("/").split("/")[-1] if user_tag else None,
             "quote":  quote_tag.get_text(strip=True) if quote_tag else None,
         })
-
+        
     return pd.DataFrame(rows)
